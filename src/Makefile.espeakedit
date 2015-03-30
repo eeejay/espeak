@@ -15,9 +15,9 @@ WX_LIBS = -pthread   `wx-config --libs`
 LIBS=-lstdc++ -lportaudio
 #LIBS=-lstdc++ /usr/lib/x86_64-linux-gnu/libportaudio.so.2
 
-CPPFLAGS =  -Wall -g -fexceptions `wx-config --cflags`
+CPPFLAGS =  -Wall -g -fexceptions `wx-config --cflags` \
 	-I/usr/include/wx-2.8 \
-	-DGTK_NO_CHECK_CASTS -D__WXGTK__ -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES
+	-DGTK_NO_CHECK_CASTS -D__WXGTK__ -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
 	-D_LARGEFILE_SOURCE=1 -DNO_GCC_PRAGMA -D_ESPEAKEDIT
 
 CXXFLAGS = -O2  -Wall -fexceptions `wx-config --cflags` \
