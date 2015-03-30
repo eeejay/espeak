@@ -400,6 +400,7 @@ void FindPhonemesUsed(void)
 	// look through all the phoneme strings in the **_rules data
 	// and mark these phoneme codes as used.
 	p = translator->data_dictrules;
+	if (p == NULL) return;
 	while(*p != 0)
 	{
 		if(*p == RULE_CONDITION)

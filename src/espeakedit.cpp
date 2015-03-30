@@ -65,6 +65,7 @@ extern void init_z();
 extern void CompilePhonemeData(void);
 extern void CompileSampleRate(void);
 extern void CompileMbrola();
+extern void CompileMbrolaFile(const wxChar *fname);
 extern void CompileIntonation();
 extern void InitSpectrumDisplay();
 extern void InitProsodyDisplay();
@@ -149,7 +150,17 @@ if(argc > 1)
 		CompilePhonemeData();
 		CompileIntonation();
 	}
-    exit(0);
+  else if (argc > 2 && strcmp(param,"--compile-mbrola")==0) {
+    samplerate_native = samplerate = 22050;
+      LoadPhData(NULL);
+    if(LoadVoice("", 0) == NULL)
+    {
+      fprintf(stderr, "Failed to load default voice\n");
+      exit(1);
+    }
+    CompileMbrolaFile(argv[2]);
+  }
+  exit(0);
 }
 
 	ConfigInit();

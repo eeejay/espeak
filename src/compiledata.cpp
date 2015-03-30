@@ -3743,9 +3743,7 @@ fprintf(f_errors,"\nRefs %d,  Reused %d\n",count_references,duplicate_references
     ReadPhondataManifest();
 }  // end of CompilePhonemeData
 
-
-
-void CompileMbrola()
+void CompileMbrolaFile(const wxChar *fname)
 {//=================
 	char *p;
 	FILE *f_in;
@@ -3765,7 +3763,7 @@ void CompileMbrola()
 	int mbrola_ctrl = 20;   // volume in 1/16 ths
 	MBROLA_TAB data[N_PHONEME_TAB];
 
-	wxString filepath = wxFileSelector(_T("Read Mbrola phonemes file"),path_phsource+_T("/mbrola"),_T(""),_T(""),_T("*"),wxOPEN);
+	wxString filepath(fname);
 	strcpy(buf,filepath.mb_str(wxConvLocal));
 	if((f_in = fopen(buf,"r")) == NULL)
 	{
@@ -3832,7 +3830,10 @@ void CompileMbrola()
 	wxLogStatus(_T("Mbrola translation file: %d phonemes"),count);
 }  // end of CompileMbrola
 
-
+void CompileMbrola() {
+	wxString filepath = wxFileSelector(_T("Read Mbrola phonemes file"),path_phsource+_T("/mbrola"),_T(""),_T(""),_T("*"),wxOPEN);
+	CompileMbrolaFile(filepath);
+}
 
 static const char *preset_tune_names[] = {
 "s1", "c1", "q1", "e1", NULL};
