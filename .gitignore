@@ -1,0 +1,12 @@
+*.o
+src/espeak
+src/espeakedit
+src/libespeak.a
+src/libespeak.so
+src/libespeak.so.1
+src/libespeak.so.1.1.48
+src/speak
+phsource/*_log
+phsource/error_*
+phsource/envelopes.png
+dictsource/*_log
