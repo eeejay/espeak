@@ -10,3 +10,5 @@ phsource/*_log
 phsource/error_*
 phsource/envelopes.png
 dictsource/*_log
+espeak.sublime-*
+
