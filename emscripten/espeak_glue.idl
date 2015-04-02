@@ -1,0 +1,45 @@
+interface espeak_VOICE {
+  [Const] attribute DOMString name;
+  readonly attribute byte[] languages;
+  [Const] attribute DOMString identifier;
+  attribute octet gender;
+  attribute octet age;
+  attribute octet variant;
+  attribute octet xx1;
+  attribute long score;
+  attribute any spare;
+};
+
+enum espeak_EVENT_TYPE {
+  "espeakEVENT_LIST_TERMINATED",
+  "espeakEVENT_WORD",
+  "espeakEVENT_SENTENCE",
+  "espeakEVENT_MARK",
+  "espeakEVENT_PLAY",
+  "espeakEVENT_END",
+  "espeakEVENT_MSG_TERMINATED",
+  "espeakEVENT_PHONEME",
+  "espeakEVENT_SAMPLERATE"
+};
+
+interface espeak_EVENT {
+  readonly attribute espeak_EVENT_TYPE type;
+  readonly attribute unsigned long unique_identifier;
+  readonly attribute long text_position;
+  readonly attribute long length;
+  readonly attribute long audio_position;
+  readonly attribute long sample;
+  readonly attribute any user_data;
+};
+
+interface EspeakWorker {
+  void EspeakWorker();
+  void synth_(DOMString aText, VoidPtr aCallback);
+  long getSizeOfEventStruct_();
+  void setVoice(DOMString aName, DOMString aLang,
+                optional octet gender=0, optional octet age=0, optional octet aVariant=0);
+  [Const] attribute espeak_VOICE[] voices;
+  readonly attribute long samplerate;
+  attribute long rate;
+  attribute long pitch;
+};

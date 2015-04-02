@@ -1,0 +1,196 @@
+<html>
+  <head>
+    <title>eSpeak.js Demo</title>
+    <style>
+      h1 {
+        max-width: 480px;
+        margin: 2rem auto;
+        font-size: 150%;
+      }
+      form {
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      .speecharg label {
+        display: inline-block;
+        width: 20%;
+      }
+      .speecharg input, .speecharg select {
+        display: inline-block;
+        width: calc(80% - 3rem);
+        margin: 0;
+      }
+      .speecharg button {
+        width: 1.5rem;
+        height: 1.5rem;
+        margin: 0 0 0 1.5rem;
+        display: inline-block;
+      }
+      .bottom {
+        margin-top: 1rem;
+      }
+      .bottom button {
+        display: inline-block;
+        width: calc(50% - 1rem);
+      }
+      .bottom button:not(:first-child) {
+        margin-left: 2rem;
+      }
+      #texttospeak {
+        width: 100%;
+        height: 8rem;
+        display: block;
+        margin-bottom: 1rem;
+      }
+
+      /* loading screen */
+      #splash {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #fff;
+        padding-top: 4rem;
+        transition: opacity 200ms ease, visibility 200ms;
+        -webkit-transition: opacity 200ms ease, visibility 200ms;
+        visibility: hidden;
+        opacity: 0;
+      }
+      body.loading #splash {
+        visibility: visible;
+        opacity: 1;
+      }
+      #splash > * {
+        width: 10rem;
+        max-width: 480px;
+        margin: 2rem auto;
+        display: block;
+        text-align: center;
+      }
+      body.loading > *:not(#splash) {
+        visibility: hidden;
+      }
+
+    </style>
+    <script type="text/javascript" src="js/espeak.js"></script>
+    <script>
+
+var espeak;
+
+var ctx = new AudioContext();
+var scriptNode;
+
+function stop() {
+  if (scriptNode) {
+    scriptNode.disconnect();
+    scriptNode = null;
+  }
+}
+
+function speak() {
+  stop();
+  var samples_queue = [];
+  var total_written = 0;
+
+  function audioprocess(evt) {
+    var offset = 0;
+    while (samples_queue.length && offset < this.bufferSize) {
+      var chunk = samples_queue[0];
+      var to_copy = chunk.subarray(0, this.bufferSize - offset);
+      if (evt.outputBuffer.copyToChannel) {
+        evt.outputBuffer.copyToChannel(to_copy, 0, offset);
+      } else {
+        evt.outputBuffer.getChannelData(0).set(to_copy, offset);
+      }
+      offset += to_copy.length;
+      total_written += to_copy.length;
+      chunk = chunk.subarray(to_copy.length);
+      if (chunk.length)
+        samples_queue[0] = chunk;
+      else
+        samples_queue.shift();
+    }
+
+    if (!samples_queue.length) {
+      this.onaudioprocess = null;
+      this.disconnect();
+    }
+  };
+
+  espeak.set_rate(Number(document.getElementById('rate').value));
+  espeak.set_pitch(Number(document.getElementById('pitch').value));
+  espeak.setVoice.apply(espeak, (document.getElementById('voice').value.split(',')));
+
+  var now = Date.now();
+
+  espeak.synth(document.getElementById('texttospeak').textContent,
+    function(samples, events) {
+      samples_queue.push(new Float32Array(samples));
+      if (!scriptNode) {
+        console.log("latency:", Date.now() - now);
+        scriptNode = ctx.createScriptProcessor(1024, 1, 1);
+        scriptNode.onaudioprocess = audioprocess;
+        scriptNode.connect(ctx.destination);
+      }
+    });
+}
+
+  function resetPitch() {
+    document.getElementById('pitch').value = 50;
+  }
+
+  function resetRate() {
+    document.getElementById('rate').value = 175;
+  }
+
+  function resetVoice() {
+    document.getElementById('default-voice').selected = true;
+  }
+    </script>
+    <style>
+    </style>
+  </head>
+  <body class="loading">
+    <div id="splash">
+      <div>Loading...</div>
+      <progress></progress>
+    </div>
+    <h1>eSpeak.js Demo</h1>
+    <form>
+      <textarea id="texttospeak">Call me Ishmael. Some years ago&#8212;never mind how long precisely&#8212;having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world.</textarea>
+      <div class="speecharg">
+        <label for="pitch">Pitch</label><input id="pitch" type="range" value="50" min="0" max="100"><button type="button" aria-label="Reset pitch" title="Reset pitch" onclick="resetPitch();">&#x21b6;</button>
+      </div>
+      <div class="speecharg">
+        <label for="rate">Rate</label><input id="rate" type="range" value="175" min="80" max="450"><button type="button" aria-label="Reset rate" title="Reset rate" onclick="resetRate();">&#x21b6;</button>
+      </div>
+      <div class="speecharg">
+        <label for="voice">Voice</label><select id="voice"></select><button type="button" aria-label="Reset voice" title="Reset voice" onclick="resetVoice();">&#x21b6;</button>
+      </div>
+      <div class="bottom">
+        <button type="button" onmousedown="speak();">Speak</button><button type="button" onmousedown="stop();">Stop</button>
+      </div>
+    </form>
+      <script type="text/javascript">
+       espeak = new Espeak('js/espeak.worker.js', function cb() {
+        espeak.listVoices(function(result) {
+          var sel = document.getElementById('voice');
+          var index = 0;
+          for (voice of result) {
+            for (lang of voice.languages) {
+              var opt = document.createElement('option');
+              opt.text = voice.name + ' (' + lang.name + ')';
+              opt.value = [voice.name, lang.name];
+              sel.add(opt);
+              if (voice.name === 'default') {
+                opt.id = 'default-voice'
+                opt.selected = true;
+              }
+            }
+          }
+        });
+        document.body.classList.remove('loading');
+});</script>
+  </body>
+</html>
