@@ -44,6 +44,12 @@
         display: block;
         margin-bottom: 1rem;
       }
+      a#gh {
+        color: #333;
+        text-align: right;
+        display: block;
+        font-style: italic;
+      }
 
       /* loading screen */
       #splash {
@@ -219,6 +225,7 @@ function speak(preach) {
         <button type="button" onmousedown="speak(true);">Preach it</button>
         <button type="button" onmousedown="stop();">Shut up</button>
       </div>
+      <a id="gh" href="https://github.com/eeejay/espeak/tree/emscripten">GitHub Branch</a>
     </form>
       <script type="text/javascript">
        espeak = new Espeak('js/espeak.worker.js', function cb() {
