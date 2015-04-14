@@ -29,13 +29,14 @@
       }
       .bottom {
         margin-top: 1rem;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-justify-content: space-between;
+        justify-content: space-between;
       }
       .bottom button {
-        display: inline-block;
-        width: calc(50% - 1rem);
-      }
-      .bottom button:not(:first-child) {
-        margin-left: 2rem;
+        flex-grow: 1;
+        -webkit-flex-grow: 1;
       }
       #texttospeak {
         width: 100%;
@@ -81,28 +82,34 @@ function PushAudioNode(context, buffersize) {
   this.samples_queue = [];
   this.scriptNode = context.createScriptProcessor(1024, 1, 1);
   this.connected = false;
+  this.sinks = [];
 }
 
 PushAudioNode.prototype.push = function(chunk) {
   this.samples_queue.push(chunk);
   if (!this.connected) {
-    if (!this.dest)
+    if (!this.sinks.length)
       throw "No destination set for PushAudioNode";
     this._do_connect();
   }
 }
 
 PushAudioNode.prototype.connect = function(dest) {
-  this.dest = dest;
+  this.sinks.push(dest);
   if (this.samples_queue.length) {
     this._do_connect();
   }
 }
 
 PushAudioNode.prototype._do_connect = function() {
- this.scriptNode.connect(this.dest);
- this.scriptNode.addEventListener('audioprocess', this);
- this.connected = true;
+  if (this.connected) return;
+  this.connected = true;
+  console.log(this.sinks.length);
+  for (var dest of this.sinks) {
+    console.log('connecting', dest, this.scriptNode.numberOfOutputs);
+    this.scriptNode.connect(dest);
+  }
+  this.scriptNode.addEventListener('audioprocess', this);
 }
 
 
@@ -136,6 +143,8 @@ PushAudioNode.prototype.handleEvent = function(evt) {
 }
 
 var ctx = new AudioContext();
+var convolver = ctx.createConvolver();
+convolver.connect(ctx.destination);
 var espeak;
 var pusher;
 
@@ -144,10 +153,9 @@ function stop() {
     pusher.disconnect();
     pusher = null;
   }
-
 }
 
-function speak() {
+function speak(preach) {
   stop();
   var samples_queue = [];
 
@@ -159,7 +167,10 @@ function speak() {
 
   pusher = new PushAudioNode(ctx);
 
-  pusher.connect(ctx.destination);
+  if (preach)
+    pusher.connect(convolver);
+  else
+    pusher.connect(ctx.destination);
 
   espeak.synth(document.getElementById('texttospeak').value,
     function(samples, events) {
@@ -204,7 +215,9 @@ function speak() {
         <label for="voice">Voice</label><select id="voice"></select><button type="button" aria-label="Reset voice" title="Reset voice" onclick="resetVoice();">&#x21b6;</button>
       </div>
       <div class="bottom">
-        <button type="button" onmousedown="speak();">Speak</button><button type="button" onmousedown="stop();">Stop</button>
+        <button type="button" onmousedown="speak();">Speak it</button>
+        <button type="button" onmousedown="speak(true);">Preach it</button>
+        <button type="button" onmousedown="stop();">Shut up</button>
       </div>
     </form>
       <script type="text/javascript">
@@ -225,7 +238,18 @@ function speak() {
             }
           }
         });
-        document.body.classList.remove('loading');
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'data/church-schellingwoude.ogg', true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onerror = console.log.bind(console);
+        xhr.onload = function() {
+          var audioData = xhr.response;
+          ctx.decodeAudioData(audioData, function(buffer) {
+            convolver.buffer = buffer;
+            document.body.classList.remove('loading');
+          }, function(e){"Error with decoding audio data" + e.err});
+        }
+        xhr.send();
 });</script>
   </body>
 </html>
