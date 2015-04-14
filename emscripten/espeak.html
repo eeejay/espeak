@@ -142,7 +142,7 @@ PushAudioNode.prototype.handleEvent = function(evt) {
   }
 }
 
-var ctx = new AudioContext();
+var ctx = new (window.AudioContext || window.webkitAudioContext)();
 var convolver = ctx.createConvolver();
 convolver.connect(ctx.destination);
 var espeak;
