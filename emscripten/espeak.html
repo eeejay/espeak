@@ -77,47 +77,79 @@
     <script type="text/javascript" src="js/espeak.js"></script>
     <script>
 
-var espeak;
+function PushAudioNode(context, buffersize) {
+  this.samples_queue = [];
+  this.scriptNode = context.createScriptProcessor(1024, 1, 1);
+  this.connected = false;
+}
+
+PushAudioNode.prototype.push = function(chunk) {
+  this.samples_queue.push(chunk);
+  if (!this.connected) {
+    if (!this.dest)
+      throw "No destination set for PushAudioNode";
+    this._do_connect();
+  }
+}
+
+PushAudioNode.prototype.connect = function(dest) {
+  this.dest = dest;
+  if (this.samples_queue.length) {
+    this._do_connect();
+  }
+}
+
+PushAudioNode.prototype._do_connect = function() {
+ this.scriptNode.connect(this.dest);
+ this.scriptNode.addEventListener('audioprocess', this);
+ this.connected = true;
+}
+
+
+PushAudioNode.prototype.disconnect = function() {
+  this.scriptNode.removeEventListener('audioprocess', this);
+  this.scriptNode.disconnect();
+  this.connected = false;
+}
+
+PushAudioNode.prototype.handleEvent = function(evt) {
+  if (!this.samples_queue.length) {
+    this.disconnect();
+  }
+
+  var offset = 0;
+  while (this.samples_queue.length && offset < evt.target.bufferSize) {
+    var chunk = this.samples_queue[0];
+    var to_copy = chunk.subarray(0, evt.target.bufferSize - offset);
+    if (evt.outputBuffer.copyToChannel) {
+      evt.outputBuffer.copyToChannel(to_copy, 0, offset);
+    } else {
+      evt.outputBuffer.getChannelData(0).set(to_copy, offset);
+    }
+    offset += to_copy.length;
+    chunk = chunk.subarray(to_copy.length);
+    if (chunk.length)
+      this.samples_queue[0] = chunk;
+    else
+      this.samples_queue.shift();
+  }
+}
 
 var ctx = new AudioContext();
-var scriptNode;
+var espeak;
+var pusher;
 
 function stop() {
-  if (scriptNode) {
-    scriptNode.disconnect();
-    scriptNode = null;
+  if (pusher) {
+    pusher.disconnect();
+    pusher = null;
   }
+
 }
 
 function speak() {
   stop();
   var samples_queue = [];
-  var total_written = 0;
-
-  function audioprocess(evt) {
-    var offset = 0;
-    while (samples_queue.length && offset < this.bufferSize) {
-      var chunk = samples_queue[0];
-      var to_copy = chunk.subarray(0, this.bufferSize - offset);
-      if (evt.outputBuffer.copyToChannel) {
-        evt.outputBuffer.copyToChannel(to_copy, 0, offset);
-      } else {
-        evt.outputBuffer.getChannelData(0).set(to_copy, offset);
-      }
-      offset += to_copy.length;
-      total_written += to_copy.length;
-      chunk = chunk.subarray(to_copy.length);
-      if (chunk.length)
-        samples_queue[0] = chunk;
-      else
-        samples_queue.shift();
-    }
-
-    if (!samples_queue.length) {
-      this.onaudioprocess = null;
-      this.disconnect();
-    }
-  };
 
   espeak.set_rate(Number(document.getElementById('rate').value));
   espeak.set_pitch(Number(document.getElementById('pitch').value));
@@ -125,14 +157,16 @@ function speak() {
 
   var now = Date.now();
 
-  espeak.synth(document.getElementById('texttospeak').textContent,
+  pusher = new PushAudioNode(ctx);
+
+  pusher.connect(ctx.destination);
+
+  espeak.synth(document.getElementById('texttospeak').value,
     function(samples, events) {
-      samples_queue.push(new Float32Array(samples));
-      if (!scriptNode) {
+      pusher.push(new Float32Array(samples));
+      if (now) {
         console.log("latency:", Date.now() - now);
-        scriptNode = ctx.createScriptProcessor(1024, 1, 1);
-        scriptNode.onaudioprocess = audioprocess;
-        scriptNode.connect(ctx.destination);
+        now = 0;
       }
     });
 }
