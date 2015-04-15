@@ -75,7 +75,6 @@ PushAudioNode.prototype._do_connect = function() {
   if (this.connected) return;
   this.connected = true;
   for (var dest of this.sinks) {
-    console.log('connecting', dest, this.scriptNode.numberOfOutputs);
     this.scriptNode.connect(dest);
   }
   this.scriptNode.onaudioprocess = this.handleEvent.bind(this);
