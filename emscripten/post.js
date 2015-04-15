@@ -98,7 +98,6 @@ if (typeof WorkerGlobalScope !== 'undefined') {
           { callback: e.data.callback,
             result: [samples.buffer, events] }, [samples.buffer]);
       });
-      message.delete_callback = true;
     }
     message.result = [espeak[e.data.method].apply(espeak, args)];
     if (e.data.callback)

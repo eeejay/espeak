@@ -15,10 +15,6 @@ function Espeak(worker_path, ready_cb) {
 Espeak.prototype.handleEvent = function (evt) {
   var callback = evt.data.callback;
   if (callback && this[callback]) {
-    if (evt.data.delete_callback) {
-      delete this[callback];
-      return;
-    }
     this[callback].apply(this, evt.data.result);
     if (evt.data.done)
       delete this[callback];
@@ -48,20 +44,31 @@ for (var method of ['listVoices', 'get_rate', 'get_pitch',
 
 /* An audio node that can have audio chunks pushed to it */
 
-function PushAudioNode(context, buffersize) {
+function PushAudioNode(context, start_callback, end_callback) {
+  this.start_callback = start_callback;
+  this.end_callback = end_callback;
   this.samples_queue = [];
+  this.context = context;
   this.scriptNode = context.createScriptProcessor(1024, 1, 1);
   this.connected = false;
   this.sinks = [];
+  this.startTime = 0;
+  this.closed = false;
 }
 
 PushAudioNode.prototype.push = function(chunk) {
+  if (this.closed)
+    throw "can't push more chunks after node was closed"
   this.samples_queue.push(chunk);
   if (!this.connected) {
     if (!this.sinks.length)
       throw "No destination set for PushAudioNode";
     this._do_connect();
   }
+}
+
+PushAudioNode.prototype.close = function() {
+  this.closed = true;
 }
 
 PushAudioNode.prototype.connect = function(dest) {
@@ -80,7 +87,6 @@ PushAudioNode.prototype._do_connect = function() {
   this.scriptNode.onaudioprocess = this.handleEvent.bind(this);
 }
 
-
 PushAudioNode.prototype.disconnect = function() {
   this.scriptNode.onaudioprocess = null;
   this.scriptNode.disconnect();
@@ -88,8 +94,11 @@ PushAudioNode.prototype.disconnect = function() {
 }
 
 PushAudioNode.prototype.handleEvent = function(evt) {
-  if (!this.samples_queue.length) {
-    this.disconnect();
+  if (!this.startTime) {
+    this.startTime = evt.playbackTime;
+    if (this.start_callback) {
+      this.start_callback();
+    }
   }
 
   var offset = 0;
@@ -107,5 +116,12 @@ PushAudioNode.prototype.handleEvent = function(evt) {
       this.samples_queue[0] = chunk;
     else
       this.samples_queue.shift();
+  }
+
+  if (!this.samples_queue.length && this.closed) {
+    if (this.end_callback) {
+      this.end_callback(evt.playbackTime - this.startTime);
+    }
+    this.disconnect();
   }
 }

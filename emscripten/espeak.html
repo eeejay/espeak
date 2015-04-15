@@ -108,7 +108,13 @@ function speak(preach) {
 
   var now = Date.now();
 
-  pusher = new PushAudioNode(ctx);
+  pusher = new PushAudioNode(ctx,
+    function() {
+      console.log('started!', ctx.currentTime, pusher.startTime);
+    },
+    function() {
+      console.log('ended!', ctx.currentTime - pusher.startTime);
+    });
 
   if (preach)
     pusher.connect(convolver);
@@ -117,7 +123,13 @@ function speak(preach) {
 
   espeak.synth(document.getElementById('texttospeak').value,
     function(samples, events) {
+      if (!samples) {
+        pusher.close();
+        return;
+      }
       pusher.push(new Float32Array(samples));
+      //if (events.length)
+      //  console.log(events.map((e) => e.type));
       if (now) {
         console.log("latency:", Date.now() - now);
         now = 0;
