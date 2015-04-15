@@ -85,69 +85,6 @@
     <script type="text/javascript" src="js/espeak.js"></script>
     <script>
 
-function PushAudioNode(context, buffersize) {
-  this.samples_queue = [];
-  this.scriptNode = context.createScriptProcessor(1024, 1, 1);
-  this.connected = false;
-  this.sinks = [];
-}
-
-PushAudioNode.prototype.push = function(chunk) {
-  this.samples_queue.push(chunk);
-  if (!this.connected) {
-    if (!this.sinks.length)
-      throw "No destination set for PushAudioNode";
-    this._do_connect();
-  }
-}
-
-PushAudioNode.prototype.connect = function(dest) {
-  this.sinks.push(dest);
-  if (this.samples_queue.length) {
-    this._do_connect();
-  }
-}
-
-PushAudioNode.prototype._do_connect = function() {
-  if (this.connected) return;
-  this.connected = true;
-  for (var dest of this.sinks) {
-    console.log('connecting', dest, this.scriptNode.numberOfOutputs);
-    this.scriptNode.connect(dest);
-  }
-  this.scriptNode.onaudioprocess = this.handleEvent.bind(this);
-}
-
-
-PushAudioNode.prototype.disconnect = function() {
-  this.scriptNode.onaudioprocess = null;
-  this.scriptNode.disconnect();
-  this.connected = false;
-}
-
-PushAudioNode.prototype.handleEvent = function(evt) {
-  if (!this.samples_queue.length) {
-    this.disconnect();
-  }
-
-  var offset = 0;
-  while (this.samples_queue.length && offset < evt.target.bufferSize) {
-    var chunk = this.samples_queue[0];
-    var to_copy = chunk.subarray(0, evt.target.bufferSize - offset);
-    if (evt.outputBuffer.copyToChannel) {
-      evt.outputBuffer.copyToChannel(to_copy, 0, offset);
-    } else {
-      evt.outputBuffer.getChannelData(0).set(to_copy, offset);
-    }
-    offset += to_copy.length;
-    chunk = chunk.subarray(to_copy.length);
-    if (chunk.length)
-      this.samples_queue[0] = chunk;
-    else
-      this.samples_queue.shift();
-  }
-}
-
 var ctx = new (window.AudioContext || window.webkitAudioContext)();
 var convolver = ctx.createConvolver();
 convolver.connect(ctx.destination);
