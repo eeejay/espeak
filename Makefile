@@ -39,7 +39,7 @@ $(MBROLA_FILES):$(TOP)/espeak-data/mbrola_ph/%_phtrans:$(TOP)/phsource/mbrola/%
 
 mbrola-voices: $(MBROLA_FILES)
 
-all-voices: phonemes voices mbrola-voices
+all-voices: phonemes voices
 
 clean:
 	rm -f espeak-data/*_dict espeak-data/ph* espeak-data/dictsource espeak-data/intonations
