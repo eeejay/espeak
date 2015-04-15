@@ -44,7 +44,9 @@ all: js/espeak.worker.js
 js/espeak.worker.data:
 	mkdir -p js
 	$(FILE_PACKAGER) $@ --js-output=espeak-file-package.js \
-	  --preload ../espeak-data@/espeak-data/
+	  --preload ../espeak-data@/espeak-data/ \
+	  --exclude ../espeak-data/voices/mb \
+	  --exclude ../espeak-data/phondata-manifest
 
 espeak-file-package.js: js/espeak.worker.data
 
