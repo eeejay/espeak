@@ -1,4 +1,5 @@
 WEBIDL_BINDER=python $(EMSCRIPTEN)/tools/webidl_binder.py
+FILE_PACKAGER=python $(EMSCRIPTEN)/tools/file_packager.py
 
 SRCS = ../src/speak_lib.cpp \
 	../src/compiledict.cpp \
@@ -29,6 +30,7 @@ SRC += espeak_glue_wrapper.cpp
 OBJS += espeak_glue_wrapper.o
 
 POSTJS=glue.js post.js
+PREJS=pre.js espeak-file-package.js
 
 CXXFLAGS+=-D PATH_ESPEAK_DATA=\"/espeak-data\" -I . -I ../src
 
@@ -39,6 +41,13 @@ endif
 
 all: js/espeak.worker.js
 
+js/espeak.worker.data:
+	mkdir -p js
+	$(FILE_PACKAGER) $@ --js-output=espeak-file-package.js \
+	  --preload ../espeak-data@/espeak-data/
+
+espeak-file-package.js: js/espeak.worker.data
+
 glue.cpp: espeak_glue.idl
 	$(WEBIDL_BINDER) espeak_glue.idl glue
 
@@ -47,11 +56,12 @@ glue.js: glue.cpp
 %.o: ../src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $<
 
-js/espeak.worker.js: glue.cpp $(OBJS) $(POSTJS)
+js/espeak.worker.js: glue.cpp $(OBJS) $(PREJS) $(POSTJS)
 	mkdir -p js
 	$(CXX) $(CXXFLAGS) $(OBJS) -s RESERVED_FUNCTION_POINTERS=2 \
-	  --preload-file ../espeak-data@/espeak-data/ --memory-init-file 0 \
+    --memory-init-file 0 \
+    $(patsubst %,--pre-js %,$(PREJS)) \
 	  $(patsubst %,--post-js %,$(POSTJS)) -o $@
 
 clean:
-	rm -f *.o glue.* js/espeak.worker.data js/espeak.worker.js
+	rm -f *.o glue.* espeak-file-package.js js/espeak.worker.data js/espeak.worker.js

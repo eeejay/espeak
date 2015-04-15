@@ -14,3 +14,4 @@ glue.*
 WebIDLGrammar.pkl
 emscripten/js/espeak.worker.js
 emscripten/js/espeak.worker.data
+emscripten/espeak-file-package.js
