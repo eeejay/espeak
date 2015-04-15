@@ -111,17 +111,16 @@ PushAudioNode.prototype.connect = function(dest) {
 PushAudioNode.prototype._do_connect = function() {
   if (this.connected) return;
   this.connected = true;
-  console.log(this.sinks.length);
   for (var dest of this.sinks) {
     console.log('connecting', dest, this.scriptNode.numberOfOutputs);
     this.scriptNode.connect(dest);
   }
-  this.scriptNode.addEventListener('audioprocess', this);
+  this.scriptNode.onaudioprocess = this.handleEvent.bind(this);
 }
 
 
 PushAudioNode.prototype.disconnect = function() {
-  this.scriptNode.removeEventListener('audioprocess', this);
+  this.scriptNode.onaudioprocess = null;
   this.scriptNode.disconnect();
   this.connected = false;
 }
@@ -223,7 +222,7 @@ function speak(preach) {
       </div>
       <div class="bottom">
         <button type="button" onmousedown="speak();">Speak it</button>
-        <button type="button" onmousedown="speak(true);">Preach it</button>
+        <button type="button" id="preachit" onmousedown="speak(true);">Preach it</button>
         <button type="button" onmousedown="stop();">Shut up</button>
       </div>
       <a id="gh" href="https://github.com/eeejay/espeak/tree/emscripten">GitHub Branch</a>
@@ -249,13 +248,21 @@ function speak(preach) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', 'data/church-schellingwoude.ogg', true);
         xhr.responseType = 'arraybuffer';
-        xhr.onerror = console.log.bind(console);
+
+        function convolverLoadFail(e) {
+         console.log("Error with decoding audio data" , e);
+         document.getElementById('preachit').disabled = true;
+         document.body.classList.remove('loading');
+        }
+
+        xhr.onerror = convolverLoadFail;
+
         xhr.onload = function() {
           var audioData = xhr.response;
           ctx.decodeAudioData(audioData, function(buffer) {
             convolver.buffer = buffer;
             document.body.classList.remove('loading');
-          }, function(e){"Error with decoding audio data" + e.err});
+          }, convolverLoadFail);
         }
         xhr.send();
 });</script>
