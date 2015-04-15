@@ -12,3 +12,5 @@ phsource/envelopes.png
 dictsource/*_log
 espeak.sublime-*
 
+phsource/compile_report
+dictsource/dict_phonemes
