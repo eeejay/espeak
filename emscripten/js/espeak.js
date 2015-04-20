@@ -54,6 +54,7 @@ function PushAudioNode(context, start_callback, end_callback) {
   this.sinks = [];
   this.startTime = 0;
   this.closed = false;
+  this.track_callbacks = new Map();
 }
 
 PushAudioNode.prototype.push = function(chunk) {
@@ -93,11 +94,32 @@ PushAudioNode.prototype.disconnect = function() {
   this.connected = false;
 }
 
+PushAudioNode.prototype.addTrackCallback = function(aTimestamp, aCallback) {
+  var callbacks = this.track_callbacks.get(aTimestamp) || [];
+  callbacks.push(aCallback);
+  this.track_callbacks.set(aTimestamp, callbacks);
+}
+
 PushAudioNode.prototype.handleEvent = function(evt) {
   if (!this.startTime) {
     this.startTime = evt.playbackTime;
     if (this.start_callback) {
       this.start_callback();
+    }
+  }
+
+  var currentTime = evt.playbackTime - this.startTime;
+  var playbackDuration = this.scriptNode.bufferSize / this.context.sampleRate;
+  for (var entry of this.track_callbacks) {
+    var timestamp = entry[0];
+    var callbacks = entry[1];
+    if (timestamp < currentTime) {
+      this.track_callbacks.delete(timestamp);
+    } else if (timestamp < currentTime + playbackDuration) {
+      for (var cb of callbacks) {
+        cb();
+      }
+      this.track_callbacks.delete(timestamp);
     }
   }
 
