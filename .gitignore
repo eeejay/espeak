@@ -12,7 +12,5 @@ phsource/compile_report
 dictsource/dict_phonemes
 glue.*
 WebIDLGrammar.pkl
-emscripten/js/espeak.worker.js
-emscripten/js/espeak.worker.data
-emscripten/espeak-file-package.js
 parser.out
+espeak-file-package.js
